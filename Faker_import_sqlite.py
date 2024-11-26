@@ -124,15 +124,13 @@ def generate_events_and_treatments(patients, num_events):
     return pd.DataFrame(events)
 
 def induce_noise(clinical_measurements_df):
-    #Inject noise by adding random normal values to the existing data
-    for p in range(len(clinical_measurements_df)) :
-        clinical_measurements_df.loc[p,'SystolicBP']+=round(np.random.randn()*3,0)
-        clinical_measurements_df.loc[p,'DiastolicBP']+=round(np.random.randn()*3,0)
-        clinical_measurements_df.loc[p,'TotalCholesterol']+=round(np.random.randn()*10,0)
-        clinical_measurements_df.loc[p,'LDL']+=round(np.random.randn()*2,0)
-        clinical_measurements_df.loc[p,'HDL']+=round(np.random.randn()*2,0)
-        clinical_measurements_df.loc[p,'Triglycerides']+=round(np.random.randn()*10,0)
-        clinical_measurements_df.loc[p,'HeartRate']+=round(np.random.randn()*5,0)
+    #Inject noise 
+    for p in range(len(clinical_measurements_df)) :      
+        for j in clinical_measurements_df.columns[3:]:
+            if random.randint(0, 19)<2: 
+                clinical_measurements_df.loc[p,j]*=10
+            elif random.randint(0, 19)>18 :
+                clinical_measurements_df.loc[p,j]+=round(np.random.randn()*5,0)
     return clinical_measurements_df
 
 def censor_rows(measurements) :
@@ -146,7 +144,7 @@ def censor_rows(measurements) :
 def censor_values(measurements) :
     #Turn 10 % of the values to na in order to create missing data points
     for p in range(len(measurements)):
-        for j in clinical_measurements_df_after_noise.columns[3:]:
+        for j in measurements.columns[3:]:
             if random.randint(0, 19)<2: 
                 measurements.loc[p,j]=np.NaN
                  
@@ -181,12 +179,14 @@ merged_df['Drop'] = (merged_df['MeasurementDate'] > merged_df['EventDate'])
 clinical_measurements_final_df = merged_df[~merged_df['Drop']].drop(columns=['Drop', 'EventDate'])
 clinical_measurements_final_df.reset_index(drop=True, inplace=True)
 
-#induce noise by adding random normal variables
-clinical_measurements_df_after_noise=induce_noise(clinical_measurements_final_df)
+
+
+#induce noise
+clinical_measurements_final_df=induce_noise(clinical_measurements_final_df)
 #create censored longitudinal data by dropping rows 
-clinical_measurements_df_after_noise=censor_rows(clinical_measurements_df_after_noise)
+clinical_measurements_final_df=censor_rows(clinical_measurements_final_df)
 #create missing measurements by randomly setting to na values in the measurement dataframe
-clinical_measurements_df_after_noise=censor_values(clinical_measurements_df_after_noise)
+clinical_measurements_final_df=censor_values(clinical_measurements_final_df)
 
 '''
 #SQLlite 
